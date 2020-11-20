@@ -1,0 +1,4 @@
+[debug] not up to date. inChanged = true, force = false
+[debug] Updating ProjectRef(uri("file:/home/nacho/Programming/Scala/cinvestav-ecg-sensor/"), "cinvestav-ecg-sensor")...
+[debug] Done updating ProjectRef(uri("file:/home/nacho/Programming/Scala/cinvestav-ecg-sensor/"), "cinvestav-ecg-sensor")
+[warn] There may be incompatibilities among your library dependencies; run 'evicted' to see detailed eviction warnings.
