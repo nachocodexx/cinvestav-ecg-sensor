@@ -1,50 +1,69 @@
 package io.cinvestav
 
 import java.sql.Timestamp
-import cats.effect.{ExitCode, IO, IOApp},cats.implicits._
+
+import cats.data.Kleisli
+import cats.effect.{ExitCode, IO, IOApp}
+import cats.implicits._
 import fs2.kafka.{KafkaProducer, ProducerRecord, ProducerRecords, ProducerSettings, produce, producerStream}
 import fs2.{Pipe, Stream}
+import io.cinvestav.config.SensorConfig
 import org.slf4j.LoggerFactory
+import pureconfig.ConfigReader.Result
+import pureconfig.generic.auto._
+import pureconfig._
+
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
+
+trait Event
+case class SensorEvent(value:Double,timestamp: Int) extends Event
+//trait Config
+
+
 object Sensor extends IOApp{
-  final val logger = LoggerFactory.getLogger("sensor-01")
+  val config: Result[SensorConfig] = ConfigSource.default.load[SensorConfig]
+  final val logger = LoggerFactory.getLogger("sensor")
 
   override def run(args: List[String]): IO[ExitCode] = {
-    val BOOTSTRAP_SERVERS:String = "localhost:9092"
-
-    //    Producer settings
-    val producerSettings = ProducerSettings[IO,Option[String],String]
-      .withBootstrapServers(BOOTSTRAP_SERVERS)
+    val  TOPIC_NAME:String  = "sensor"
+    val BATCH_SIZE:Int = 1000
+    val TIME_WINDOW:FiniteDuration = 30 seconds
 
 
-    val produceFakeData:Pipe[IO,KafkaProducer.Metrics[IO,Option[String],String],Int] =
-      in=> Stream
-        .emit(1)
-        .evalTap(_=>IO(logger.info("SENDING FAKE DATA...")))
-        .metered(2 seconds)
 
-    val createProducerData = Stream.emit(1).repeat.covary[IO]
-      .evalTap(_=>IO(logger.info("SENDING FAKE DATA...")))
-      .metered(2 seconds)
-      .compile.drain
+    val startStream:Kleisli[IO,SensorConfig,Stream[IO,_]] =
+      Kleisli(
+        (config:SensorConfig)=>{
+          //    Producer settings
+        val producerSettings = ProducerSettings[IO,Option[String],String]
+          .withBootstrapServers(config.bootstrapServers)
+//
+          producerStream[IO]
+            .using(producerSettings)
+            .flatMap {
+              producer=>Stream.emit(1)
+                .repeat.covary[IO]
+                .evalTap(_=>logger.info(s"${config.sensorId} is sending...").pure[IO])
+                .evalMap(_=>new Timestamp(System.currentTimeMillis).pure[IO])
+                .evalMap(x=>ProducerRecord(TOPIC_NAME,None,s"Freddy Goto - $x").pure[IO])
+                .evalMap(ProducerRecords.one(_).pure[IO])
+                .evalMap(producer.produce)
+                .groupWithin(BATCH_SIZE,TIME_WINDOW)
+                .metered(5 seconds)
+            }
+            .pure[IO]
+        }
+      )
 
-    val stream = producerStream[IO]
-      .using(producerSettings)
-      .flatMap {
-        producer => Stream.emit(1)
-          .repeat.covary[IO]
-          .evalTap(_=>logger.info("SENT DATA...").pure[IO])
-          .evalMap(_=>new Timestamp(System.currentTimeMillis).pure[IO])
-          .evalMap(x=>ProducerRecord("mytopic",None,s"Freddy Goto - $x").pure[IO])
-          .evalMap(ProducerRecords.one(_).pure[IO])
-          .evalMap(producer.produce)
-          .groupWithin(100,10 seconds)
-          .metered(10 seconds)
-      }
-
-    val response = stream.compile.drain.as(ExitCode.Success)
-    response
+    config match {
+      case Left(value) =>
+        logger.error(s"Config file is wrong: ${value.head.description}")
+        IO.unit.as(ExitCode.Error)
+      case Right(value) =>
+        val response  = startStream.run(value).unsafeRunSync()
+        response.compile.drain.as(ExitCode.Success)
+    }
   }
 }
