@@ -12,15 +12,19 @@ import org.slf4j.LoggerFactory
 import pureconfig.ConfigReader.Result
 import pureconfig.generic.auto._
 import pureconfig._
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.parser._
+import io.circe.syntax._
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.util.Random
+import java.time.Instant
 
 
 trait Event
-case class SensorEvent(value:Double,timestamp: Int) extends Event
-//trait Config
-
+case class SensorEvent(value:Double,timestamp: Long) extends Event
 
 object Sensor extends IOApp{
   val config: Result[SensorConfig] = ConfigSource.default.load[SensorConfig]
@@ -31,6 +35,8 @@ object Sensor extends IOApp{
     val BATCH_SIZE:Int = 1000
     val TIME_WINDOW:FiniteDuration = 30 seconds
 
+    def generateRandomNumber(start:Double,end:Double)=
+      Random.nextDouble() *(start-end) +end
 
 
     val startStream:Kleisli[IO,SensorConfig,Stream[IO,_]] =
@@ -46,8 +52,11 @@ object Sensor extends IOApp{
               producer=>Stream.emit(1)
                 .repeat.covary[IO]
                 .evalTap(_=>logger.info(s"${config.sensorId} is sending...").pure[IO])
-                .evalMap(_=>new Timestamp(System.currentTimeMillis).pure[IO])
-                .evalMap(x=>ProducerRecord(TOPIC_NAME,None,s"Freddy Goto - $x").pure[IO])
+                .evalMap(_=>Instant.now().getEpochSecond.pure[IO])
+                .evalMap(timestamp => SensorEvent(generateRandomNumber(0,10),timestamp).pure[IO])
+                .evalMap(sensorEvent=>sensorEvent.asJson.pure[IO])
+                .evalTap(x=>logger.info(x.toString()).pure[IO])
+                .evalMap(x=>ProducerRecord(TOPIC_NAME,None,x.toString).pure[IO])
                 .evalMap(ProducerRecords.one(_).pure[IO])
                 .evalMap(producer.produce)
                 .groupWithin(BATCH_SIZE,TIME_WINDOW)
