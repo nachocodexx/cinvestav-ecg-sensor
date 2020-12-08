@@ -1,4 +1,3 @@
-
 lazy val PureConfig = "com.github.pureconfig" %% "pureconfig" % "0.14.0"
 lazy val fs2KafkaVersion = "1.1.0"
 
@@ -20,6 +19,7 @@ lazy val Fs2 = "co.fs2" %% "fs2-core" % "2.4.4"
 lazy val LogBack ="ch.qos.logback" % "logback-classic" % "1.2.3"
 
 lazy val sensorApp = (project in file("."))
+  .enablePlugins(JavaAppPackaging)
   .settings(
     name := "cinvestav-ecg-sensor",
     version := "0.1",
@@ -30,6 +30,12 @@ lazy val sensorApp = (project in file("."))
       Fs2,
       LogBack,
       PureConfig
-    ) ++ Fs2Kafka ++ Circe
+    ) ++ Fs2Kafka ++ Circe,
   )
 
+
+lazy val dockerPorts = sys.env.getOrElse("PORT", 9092).asInstanceOf[Int]
+dockerExposedPorts := Seq(dockerPorts,9092)
+dockerRepository := Some("nachocode")
+packageName in Docker := "cinvestav-ecg-sensor"
+version in Docker := "latest"
