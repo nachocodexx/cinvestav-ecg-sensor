@@ -5,16 +5,16 @@ import java.sql.Timestamp
 import cats.data.Kleisli
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits._
-import fs2.kafka.{KafkaProducer, ProducerRecord, ProducerRecords, ProducerSettings, produce, producerStream}
-import fs2.{Pipe, Stream}
+import fs2.kafka.{ ProducerRecord, ProducerRecords, ProducerSettings,  producerStream}
+import fs2.Stream
 import io.cinvestav.config.SensorConfig
 import org.slf4j.LoggerFactory
 import pureconfig.ConfigReader.Result
 import pureconfig.generic.auto._
 import pureconfig._
-import io.circe._
+//import io.circe._
 import io.circe.generic.auto._
-import io.circe.parser._
+//import io.circe.parser._
 import io.circe.syntax._
 
 import scala.concurrent.duration._
@@ -40,28 +40,35 @@ object Sensor extends IOApp{
 
     def generateRandomNumber(start:Double,end:Double)=
       Random.nextDouble() *(start-end) +end
+    def generateVitalSign(vitalSignRef:Ref[IO,Double]) =
+      Stream
+        .iterate(1)(_+1)
+        .covary[IO]
+        .repeat
+        .evalTap(_=>
+          for {
+            amount<- generateRandomNumber(-1,1).pure[IO]
+            _<- vitalSignRef.modify(x=>(amount,x))
+          } yield ()
+        )
+        .metered(1 millisecond)
 
 
     val startStream:Kleisli[IO,SensorConfig,Stream[IO,_]] =
       Kleisli(
         (config:SensorConfig)=>{
           //    Producer settings
-        val producerSettings = ProducerSettings[IO,Option[String],String]
+          val producerSettings = ProducerSettings[IO,Option[String],String]
           .withBootstrapServers(config.bootstrapServers)
-//        val restartStream  = Stream.eval(MVar.empty[IO,Unit])
-//          restartStream.flatMap {
-//            restart=>
-              val vitalSignRef = Ref.of[IO,Double](generateRandomNumber(1,10)).unsafeRunSync()
+//
+          val vitalSignRef = Ref.of[IO,Double](generateRandomNumber(1,10)).unsafeRunSync()
 //              //////////////////////////////////////////////
           producerStream[IO]
             .using(producerSettings)
             .flatMap {
               producer=>Stream.emit(1)
                 .repeat.covary[IO]
-//                .evalTap(_=>logger.info(s"${config.sensorId} is sending...").pure[IO])
                 .evalMap(_=>Instant.now().getEpochSecond.pure[IO])
-//                .evalMap(_=>(vitalSign.flatMap(_.take),_))
-//                .evalMap(timestamp => SensorEvent(generateRandomNumber(0,10),timestamp).pure[IO])
                 .evalMap(timestamp =>
                   for{
                     vitalSign<-vitalSignRef.get
@@ -74,27 +81,11 @@ object Sensor extends IOApp{
                 .evalMap(ProducerRecords.one(_).pure[IO])
                 .evalMap(producer.produce)
                 .groupWithin(BATCH_SIZE,TIME_WINDOW)
-                .concurrently(
-                  Stream
-                    .iterate(1)(_+1)
-                    .covary[IO]
-//                    .interruptWhen(restart.take.attempt)
-                    .repeat
-//                    .evalTap(_=>println("NEW VALUE").pure[IO])
-//                    .evalMap(_=>restart.put(()))
-                    .evalTap(_=>
-                      for {
-                        amount<- generateRandomNumber(-1,1).pure[IO]
-                        _<- vitalSignRef.modify(x=>(amount,x))
-                      } yield ()
-                    )
-                    .metered(1 millisecond)
-                )
+                .concurrently( generateVitalSign(vitalSignRef))
                 .metered(RATE_TIME)
             }
           }
             .pure[IO]
-//        }
       )
 
     config match {
