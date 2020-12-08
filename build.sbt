@@ -17,6 +17,7 @@ lazy val Fs2Kafka = Seq(
 ).map(_%fs2KafkaVersion)
 lazy val Fs2 = "co.fs2" %% "fs2-core" % "2.4.4"
 lazy val LogBack ="ch.qos.logback" % "logback-classic" % "1.2.3"
+lazy val Vulcan = "com.github.fd4s" %% "vulcan" % "1.2.0"
 
 lazy val sensorApp = (project in file("."))
   .enablePlugins(JavaAppPackaging)
@@ -29,7 +30,8 @@ lazy val sensorApp = (project in file("."))
       CatsEffect,
       Fs2,
       LogBack,
-      PureConfig
+      PureConfig,
+      Vulcan
     ) ++ Fs2Kafka ++ Circe,
   )
 
