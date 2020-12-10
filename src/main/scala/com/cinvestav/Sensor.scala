@@ -1,13 +1,12 @@
-package io.cinvestav
+package com.cinvestav
 
 import java.sql.Timestamp
-
 import cats.data.Kleisli
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits._
-import fs2.kafka.{ ProducerRecord, ProducerRecords, ProducerSettings,  producerStream}
+import com.cinvestav.config.SensorConfig
+import fs2.kafka.{ProducerRecord, ProducerRecords, ProducerSettings, producerStream}
 import fs2.Stream
-import io.cinvestav.config.SensorConfig
 import org.slf4j.LoggerFactory
 import pureconfig.ConfigReader.Result
 import pureconfig.generic.auto._
@@ -34,8 +33,8 @@ object Sensor extends IOApp{
   type AppContext = (MVar[IO, Unit], SensorConfig)
 
   override def run(args: List[String]): IO[ExitCode] = {
-    val BATCH_SIZE:Int = 5
-    val TIME_WINDOW:FiniteDuration =  100 milliseconds
+    val BATCH_SIZE:Int = 10
+    val TIME_WINDOW:FiniteDuration =  1 seconds
     val RATE_TIME = 1 seconds
 
     def generateRandomNumber(start:Double,end:Double)=
@@ -51,7 +50,8 @@ object Sensor extends IOApp{
             _<- vitalSignRef.modify(x=>(amount,x))
           } yield ()
         )
-        .metered(1 millisecond)
+        .evalTap(_=>println("CHANGE VALUE").pure[IO])
+        .metered(100 millisecond)
 
 
     val startStream:Kleisli[IO,SensorConfig,Stream[IO,_]] =
@@ -69,19 +69,20 @@ object Sensor extends IOApp{
               producer=>Stream.emit(1)
                 .repeat.covary[IO]
                 .evalMap(_=>Instant.now().getEpochSecond.pure[IO])
-                .evalMap(timestamp =>
-                  for{
-                    vitalSign<-vitalSignRef.get
-                    event <- SensorEvent(config.sensorId,2+vitalSign,timestamp).pure[IO]
-                  } yield event
-                )
+//                .evalMap(timestamp =>
+//                  for{
+//                    vitalSign<-vitalSignRef.get
+//                    event <- SensorEvent(config.sensorId,1-vitalSign,timestamp).pure[IO]
+//                  } yield event
+//                )
+                .evalMap(timestamp=>SensorEvent(config.sensorId,2+generateRandomNumber(-1,.2),timestamp).pure[IO])
                 .evalMap(sensorEvent=>sensorEvent.asJson.pure[IO])
                 .evalTap(x=>logger.info(x.toString()).pure[IO])
                 .evalMap(x=>ProducerRecord(config.topicName,Some("sid:"+config.sensorId),x.toString).pure[IO])
                 .evalMap(ProducerRecords.one(_).pure[IO])
-                .evalMap(producer.produce)
+//                .evalMap(producer.produce)
+//                .concurrently( generateVitalSign(vitalSignRef))
                 .groupWithin(BATCH_SIZE,TIME_WINDOW)
-                .concurrently( generateVitalSign(vitalSignRef))
                 .metered(RATE_TIME)
             }
           }
@@ -93,8 +94,12 @@ object Sensor extends IOApp{
         logger.error(s"Config file is wrong: ${value.head.description}")
         IO.unit.as(ExitCode.Error)
       case Right(value) =>
-        val response  = startStream.run(value).unsafeRunSync()
-        response.compile.drain.as(ExitCode.Success)
+        implicit  val config = value
+        val path = "/home/nacho/Programming/Python/qrs_detector/src/ecg_data/ecg_data_1.csv"
+
+//        Producer[IO]()
+
+//        response.compile.drain.as(ExitCode.Success)
 
     }
   }

@@ -1,5 +1,4 @@
-package io.cinvestav.config
-
+package com.cinvestav.config
 
 case class SensorConfig(
                        sensorId:String,
