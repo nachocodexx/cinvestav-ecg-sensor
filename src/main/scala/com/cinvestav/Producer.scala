@@ -1,18 +1,24 @@
 package com.cinvestav
 
-import cats.effect.{Concurrent, ConcurrentEffect, ContextShift}
-import cats.syntax.OptionIdOps
+import cats.effect.{ConcurrentEffect, ContextShift}
 import com.cinvestav.config.SensorConfig
-import fs2.kafka.{KafkaProducer, ProducerSettings, producerStream}
+import com.cinvestav.events.SensorEvent
+import com.cinvestav.serializers.SensorKey
+import fs2.kafka.{KafkaProducer, ProducerSettings, Serializer, producerStream}
 
 object Producer {
-  def apply[F[_]:ConcurrentEffect:ContextShift]()(implicit config:SensorConfig): fs2.Stream[F, KafkaProducer.Metrics[F, Option[String], String]] = {
-    val settings = ProducerSettings[F,Option[String],String]
+  import com.cinvestav.serializers.VulcanSerializer
+  def apply[F[_]:ConcurrentEffect:ContextShift]()(implicit config:SensorConfig): fs2.Stream[F, KafkaProducer
+  .Metrics[F, SensorKey, SensorEvent]] = {
+    val serializers = VulcanSerializer[F]()
+    val settings = ProducerSettings[F,SensorKey,SensorEvent](
+      keySerializer = serializers.sensorKeySerializer,
+      valueSerializer = serializers.sensorEventSerializer
+    )
       .withBootstrapServers(config.bootstrapServers)
-//      .valueSerializer[]
+
     producerStream[F]
       .using(settings)
-//      .evalMap(_.produce)
   }
 
 }

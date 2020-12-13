@@ -1,3 +1,3 @@
 package com.cinvestav.events
 
-case class MeasurementEvent(sensorId:String,measurement)
+case class SensorEvent(sensorId:String,measurement:Double,timestamp:Long)

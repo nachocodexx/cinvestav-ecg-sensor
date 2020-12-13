@@ -1,16 +1,9 @@
 lazy val PureConfig = "com.github.pureconfig" %% "pureconfig" % "0.14.0"
-lazy val fs2KafkaVersion = "1.1.0"
 
 lazy val CatsEffect= "org.typelevel" %% "cats-core" % "2.1.1"
 
-val circeVersion = "0.12.3"
 
-lazy val Circe = Seq(
-  "io.circe" %% "circe-core",
-  "io.circe" %% "circe-generic",
-  "io.circe" %% "circe-parser"
-).map(_ % circeVersion)
-
+lazy val fs2KafkaVersion = "1.1.0"
 lazy val Fs2Kafka = Seq(
   "com.github.fd4s" %% "fs2-kafka",
   "com.github.fd4s" %% "fs2-kafka-vulcan",
@@ -35,7 +28,7 @@ lazy val sensorApp = (project in file("."))
       LogBack,
       PureConfig,
       Vulcan
-    )++Fs2Kafka++Circe++Fs2,
+    )++Fs2Kafka++Fs2,
   )
 
 
