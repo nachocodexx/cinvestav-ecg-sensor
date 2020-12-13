@@ -1,22 +1,20 @@
 lazy val PureConfig = "com.github.pureconfig" %% "pureconfig" % "0.14.0"
-lazy val fs2KafkaVersion = "1.1.0"
 
 lazy val CatsEffect= "org.typelevel" %% "cats-core" % "2.1.1"
 
-val circeVersion = "0.12.3"
 
-lazy val Circe = Seq(
-  "io.circe" %% "circe-core",
-  "io.circe" %% "circe-generic",
-  "io.circe" %% "circe-parser"
-).map(_ % circeVersion)
-
+lazy val fs2KafkaVersion = "1.1.0"
 lazy val Fs2Kafka = Seq(
   "com.github.fd4s" %% "fs2-kafka",
   "com.github.fd4s" %% "fs2-kafka-vulcan",
 ).map(_%fs2KafkaVersion)
-lazy val Fs2 = "co.fs2" %% "fs2-core" % "2.4.4"
+lazy val Fs2 = Seq(
+  "co.fs2" %% "fs2-core" ,
+"co.fs2" %% "fs2-io"
+).map(_%"2.4.4")
+
 lazy val LogBack ="ch.qos.logback" % "logback-classic" % "1.2.3"
+lazy val Vulcan = "com.github.fd4s" %% "vulcan" % "1.2.0"
 
 lazy val sensorApp = (project in file("."))
   .enablePlugins(JavaAppPackaging)
@@ -27,10 +25,10 @@ lazy val sensorApp = (project in file("."))
     resolvers += "confluent" at "https://packages.confluent.io/maven/",
     libraryDependencies ++= Seq(
       CatsEffect,
-      Fs2,
       LogBack,
-      PureConfig
-    ) ++ Fs2Kafka ++ Circe,
+      PureConfig,
+      Vulcan
+    )++Fs2Kafka++Fs2,
   )
 
 
