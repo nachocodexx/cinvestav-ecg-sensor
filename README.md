@@ -3,47 +3,29 @@
 <br />
 <p align="center">
   <a href="#">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
+    <img src="./images/logo.png" alt="Logo" width="80" height="80">
   </a>
 
   <h3 align="center">QRS Complex Detector</h3>
 
   <p align="center">
-    Coming soon...
+    V.1.0
     <br />
-    <a href="https://github.com/othneildrew/Best-README-Template"><strong>Explore the docs »</strong></a>
+    <a href="#"><strong>Explore the docs »</strong></a>
     <br />
-    <br />
-    <a href="#">View Demo</a>
-    ·
     <a href="#">Report Bug</a>
     ·
     <a href="#">Request Feature</a>
   </p>
 </p>
 
-
-
-<!-- TABLE OF CONTENTS -->
-<!-- ## Table of Contents --> 
-<!-- 
-* [About the Project](#about-the-project)
-  * [Built With](#built-with)
-* [Getting Started](#getting-started)
-  * [Prerequisites](#prerequisites)
-  * [Installation](#installation)
-* [Usage](#usage)
-* [Roadmap](#roadmap)
-* [Contributing](#contributing)
-* [License](#license)
-* [Contact](#contact)
-* [Acknowledgements](#acknowledgements) --> 
-
-
-
 <!-- ABOUT THE PROJECT -->
 ## About The Project
+This is a fake Electrocardiogram(ECG) sensor which read from  CSV file that contain electrocardiogram data, heart's 
+electrical activity using a library for purely functional, effectful, and polymorphic stream processing call [FS2](https://github.com/typelevel/fs2) and I/O library and publish to a Kafka.
 
+Produce a [Kafka](https://kafka.apache.org/) message  takes place using [FS2 Kafka](https://fd4s.github.
+io/fs2-kafka/) which is a library for functional streams for Kafka using [FS2](https://github.com/typelevel/fs2).
 <!--[![Product Name Screen Shot][product-screenshot]](https://example.com) -->
 
 <!-- GETTING STARTED -->
@@ -60,7 +42,7 @@ _For more examples, please refer to the [Documentation](https://example.com)_
 
 <!-- ROADMAP -->
 ## Roadmap
-See the [open issues](https://github.com/nachocodexx/cinvestav-qrs/issues) for a list of proposed features (and known issues).
+See the [open issues](https://github.com/nachocodexx/cinvestav-ecg-sensor/issues) for a list of proposed features (and known issues).
 <!-- CONTRIBUTING -->
 ## Contributing
 
@@ -91,4 +73,5 @@ Project Link: [https://github.com/nachocodexx](https://github.com/nachocodexx)
 
 
 <!-- ACKNOWLEDGEMENTS -->
-## Acknowledgements
+
+[comment]: <> (## Acknowledgements)
